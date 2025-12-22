@@ -8,10 +8,11 @@ platform :mac do
   lane :package do
     UI.message("Starte Build-Prozess für XToolMac")
 
-    # XcodeGen – project.yml liegt im selben Ordner
-    xcodegen(
-      spec: "project.yml",
-      project: "XToolMac.xcodeproj"
+    # ❌ KEIN fastlane-plugin-xcodegen
+    # ✅ Direktes CLI, vollständig kompatibel mit macOS
+    sh(
+      "xcodegen",
+      "--spec", "project.yml"
     )
 
     create_keychain(
@@ -36,29 +37,23 @@ platform :mac do
       )
     end
 
-    update_code_signing_settings(
-      use_automatic_signing: false,
-      team_id: ENV["DEVELOPMENT_TEAM"],
-      code_sign_identity: "Developer ID Application"
-    )
+    # ⚠️ KEIN update_code_signing_settings
+    # Für Developer ID ist das unnötig & fehleranfällig
 
     gym(
-      project: "XToolMac.xcodeproj",
       scheme: "XToolMac",
-      configuration: "Release",
       export_method: "developer-id",
-      output_directory: "../Build/Output",
-      clean: true
+      output_directory: "./Build/Output"
     )
 
     notarize(
-      package: "../Build/Output/XToolMac.app"
+      package: "./Build/Output/XToolMac.app"
     )
 
     sh(
       "ditto", "-c", "-k", "--keepParent", "--sequesterRsrc",
-      "../Build/Output/XToolMac.app",
-      "../Build/Output/XToolMac.app.zip"
+      "./Build/Output/XToolMac.app",
+      "./Build/Output/XToolMac.app.zip"
     )
   end
 end
