@@ -1,37 +1,39 @@
 require_relative "spaceship_patch"
 
+# Fastfile
 default_platform(:mac)
 
-ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
+platform :mac do
+  desc "Build and package the macOS app"
+  lane :package do
+    # 1. Generelle Info
+    UI.message "Starte Build-Prozess für XToolMac"
 
-lane :package do
-  # 1️⃣ Xcode-Projekt generieren
-  xcodegen
+    # 2. XcodeGen Projekt generieren
+    xcodegen(
+      spec: "macOS/XToolMac.yml", # Falls du ein eigenes XcodeGen-Spec hast
+      project: "macOS/XToolMac.xcodeproj" # Projekt wird hier erstellt
+    )
 
-  # 2️⃣ Keychain- / Zertifikat-Schritte überspringen
-  # create_keychain, unlock_keychain, import_certificate -> entfällt
+    UI.message "XcodeProjekt erstellt: macOS/XToolMac.xcodeproj"
 
-  # 3️⃣ Sigh / Code-Signing überspringen
-  # update_code_signing_settings -> entfällt
-  # gym / export_method -> direkt mit xcodebuild bauen
+    # 3. Build mit xcodebuild
+    project_path = "macOS/XToolMac.xcodeproj"
+    scheme = "XToolMac"
+    configuration = "Release"
+    derived_data_path = "./Build/DerivedData"
+    build_dir = "./Build/Output"
 
-  sh("xcodebuild",
-     "-project", "/macOS/XToolMac.xcodeproj",
-     "-scheme", "XToolMac",
-     "-configuration", "Release",
-     "-derivedDataPath", "./Build/DerivedData",
-     "BUILD_DIR=./Build/Output",
-     "CODE_SIGN_IDENTITY=" # Keine Signierung
-  )
+    sh(
+      "xcodebuild",
+      "-project", project_path,
+      "-scheme", scheme,
+      "-configuration", configuration,
+      "-derivedDataPath", derived_data_path,
+      "BUILD_DIR=#{build_dir}",
+      "CODE_SIGN_IDENTITY="
+    )
 
-  # 4️⃣ Notarization überspringen
-  # notarize -> entfällt
-
-  # 5️⃣ App zippen wie zuvor
-  sh(
-    "ditto", "-c", "-k", "--keepParent", "--sequesterRsrc",
-    "./Build/Output/Release/XToolMac.app", "./Build/Output/XToolMac.app.zip",
-  )
-
-  puts "✅ Build erfolgreich! Die App liegt in ./Build/Output"
+    UI.success "✅ Build abgeschlossen!"
+  end
 end
