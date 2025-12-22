@@ -1,39 +1,28 @@
 require_relative "spaceship_patch"
 
-# Fastfile
 default_platform(:mac)
 
 platform :mac do
-  desc "Build and package the macOS app"
   lane :package do
-    # 1. Generelle Info
     UI.message "Starte Build-Prozess für XToolMac"
 
-    # 2. XcodeGen Projekt generieren
+    # Wir sind bereits in macOS/
     xcodegen(
-      spec: "macOS/XToolMac.yml", # Falls du ein eigenes XcodeGen-Spec hast
-      project: "macOS/XToolMac.xcodeproj" # Projekt wird hier erstellt
+      spec: "XToolMac.yml",
+      project: "XToolMac.xcodeproj"
     )
-
-    UI.message "XcodeProjekt erstellt: macOS/XToolMac.xcodeproj"
-
-    # 3. Build mit xcodebuild
-    project_path = "macOS/XToolMac.xcodeproj"
-    scheme = "XToolMac"
-    configuration = "Release"
-    derived_data_path = "./Build/DerivedData"
-    build_dir = "./Build/Output"
 
     sh(
       "xcodebuild",
-      "-project", project_path,
-      "-scheme", scheme,
-      "-configuration", configuration,
-      "-derivedDataPath", derived_data_path,
-      "BUILD_DIR=#{build_dir}",
+      "-project", "XToolMac.xcodeproj",
+      "-scheme", "XToolMac",
+      "-configuration", "Release",
+      "-derivedDataPath", "../Build/DerivedData",
+      "BUILD_DIR=../Build/Output",
+      "CODE_SIGNING_ALLOWED=NO",
       "CODE_SIGN_IDENTITY="
     )
 
-    UI.success "✅ Build abgeschlossen!"
+    UI.success "✅ Build abgeschlossen"
   end
 end
