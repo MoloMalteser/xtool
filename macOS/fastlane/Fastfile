@@ -16,7 +16,7 @@ lane :package do
   # gym / export_method -> direkt mit xcodebuild bauen
 
   sh("xcodebuild",
-     "-project", "XToolMac.xcodeproj",
+     "-project", "/macOS/XToolMac.xcodeproj",
      "-scheme", "XToolMac",
      "-configuration", "Release",
      "-derivedDataPath", "./Build/DerivedData",
