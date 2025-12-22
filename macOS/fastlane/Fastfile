@@ -2,27 +2,63 @@ require_relative "spaceship_patch"
 
 default_platform(:mac)
 
+ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
+
 platform :mac do
   lane :package do
-    UI.message "Starte Build-Prozess für XToolMac"
+    UI.message("Starte Build-Prozess für XToolMac")
 
-    # Wir sind bereits in macOS/
+    # XcodeGen – project.yml liegt im selben Ordner
     xcodegen(
       spec: "project.yml",
       project: "XToolMac.xcodeproj"
     )
 
-    sh(
-      "xcodebuild",
-      "-project", "XToolMac.xcodeproj",
-      "-scheme", "XToolMac",
-      "-configuration", "Release",
-      "-derivedDataPath", "../Build/DerivedData",
-      "BUILD_DIR=../Build/Output",
-      "CODE_SIGNING_ALLOWED=NO",
-      "CODE_SIGN_IDENTITY="
+    create_keychain(
+      name: "xtool.keychain",
+      password: "",
+      unlock: true
     )
 
-    UI.success "✅ Build abgeschlossen"
+    unlock_keychain(
+      path: "xtool.keychain",
+      password: ""
+    )
+
+    Tempfile.create(["Identity", ".p12"]) do |file|
+      file.write(Base64.decode64(ENV["IDENTITY_P12"]))
+      file.close
+
+      import_certificate(
+        certificate_path: file.path,
+        keychain_name: "xtool.keychain",
+        keychain_password: ""
+      )
+    end
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      team_id: ENV["DEVELOPMENT_TEAM"],
+      code_sign_identity: "Developer ID Application"
+    )
+
+    gym(
+      project: "XToolMac.xcodeproj",
+      scheme: "XToolMac",
+      configuration: "Release",
+      export_method: "developer-id",
+      output_directory: "../Build/Output",
+      clean: true
+    )
+
+    notarize(
+      package: "../Build/Output/XToolMac.app"
+    )
+
+    sh(
+      "ditto", "-c", "-k", "--keepParent", "--sequesterRsrc",
+      "../Build/Output/XToolMac.app",
+      "../Build/Output/XToolMac.app.zip"
+    )
   end
 end
